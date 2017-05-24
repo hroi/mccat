@@ -106,11 +106,11 @@ fn run() -> AppResult<()> {
 fn parse_cmdline() -> AppResult<(Command, net::IpAddr, u16)> {
     let mut args = env::args().skip(1);
     let cmd = args.next()
-        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
     let addr = args.next()
-        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
     let port = args.next()
-        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
 
     let cmd = match &*cmd {
         "listen" => Command::Listen,
