@@ -9,7 +9,7 @@ enum Command {
     Ping,
 }
 
-const USAGE: &'static str = "Usage: mccat <listen | send> address port";
+const USAGE: &'static str = "Usage: mccat <listen | send | ping> address port";
 
 type AppResult<T> = Result<T, Box<Error>>;
 
