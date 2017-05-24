@@ -54,9 +54,8 @@ fn run() -> AppResult<()> {
                 if data.starts_with(b"PING") {
                     let (_,seqnum) = data.split_at(4);
                     sock.send_to(format!("PONG{}", String::from_utf8_lossy(seqnum)).as_bytes(), src)?;
-                } else {
-                    println!("{} said: {}", src, String::from_utf8_lossy(data));
                 }
+                println!("{} said: {}", src, String::from_utf8_lossy(data));
             }
         }
         Command::Send => {
