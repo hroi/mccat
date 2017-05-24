@@ -7,11 +7,13 @@ enum Command {
     Send,
 }
 
+const USAGE: &'static str = "Usage: mccat <listen | send> address port";
+
 type AppResult<T> = Result<T, Box<Error>>;
 
 fn main() {
     if let Err(err) = run() {
-        let _ = writeln!(io::stderr(), "Error: {}", err);
+        let _ = writeln!(io::stderr(), "{}", err);
         process::exit(1);
     }
 }
@@ -84,11 +86,11 @@ fn run() -> AppResult<()> {
 fn parse_cmdline() -> AppResult<(Command, net::IpAddr, u16)> {
     let mut args = env::args().skip(1);
     let cmd = args.next()
-        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, "no cmd specified"))?;
+        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
     let addr = args.next()
-        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, "no addr specified"))?;
+        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
     let port = args.next()
-        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, "no port specified"))?;
+        .ok_or(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
 
     let cmd = match &*cmd {
         "listen" => Command::Listen,
