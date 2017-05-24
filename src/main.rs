@@ -65,9 +65,9 @@ fn run() -> AppResult<()> {
                     sock
                 }
             };
+            let mut buf = [0u8; 16384];
+            let mut stdin = io::stdin();
             loop {
-                let mut buf = [0u8; 16384];
-                let mut stdin = io::stdin();
                 let len = stdin.read(&mut buf)?;
                 if len == 0 {
                     return Ok(());
