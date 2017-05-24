@@ -1,10 +1,12 @@
-use std::{env, io, net, process};
-use std::io::prelude::*;
+use std::{env, io, net, process, thread};
 use std::error::Error;
+use std::io::prelude::*;
+use std::time::Duration;
 
 enum Command {
     Listen,
     Send,
+    Ping,
 }
 
 const USAGE: &'static str = "Usage: mccat <listen | send> address port";
@@ -49,22 +51,20 @@ fn run() -> AppResult<()> {
             loop {
                 let (len, src) = sock.recv_from(&mut buf)?;
                 let data = &buf[..len];
-                println!("{} said: {}", src, String::from_utf8_lossy(data));
+                if data.starts_with(b"PING") {
+                    let (_,seqnum) = data.split_at(4);
+                    sock.send_to(format!("PONG{}", String::from_utf8_lossy(seqnum)).as_bytes(), src)?;
+                } else {
+                    println!("{} said: {}", src, String::from_utf8_lossy(data));
+                }
             }
         }
         Command::Send => {
             let sock = match multiaddr {
-                net::IpAddr::V4(addr) => {
-                    let sock = net::UdpSocket::bind((net::Ipv4Addr::from(0), 0))?;
-                    sock.connect((addr, port))?;
-                    sock
-                }
-                net::IpAddr::V6(addr) => {
-                    let sock = net::UdpSocket::bind((net::Ipv6Addr::from([0u8; 16]), 0))?;
-                    sock.connect((addr, port))?;
-                    sock
-                }
+                net::IpAddr::V4(_) => net::UdpSocket::bind((net::Ipv4Addr::from(0), 0))?,
+                net::IpAddr::V6(_) => net::UdpSocket::bind((net::Ipv6Addr::from([0u8; 16]), 0))?,
             };
+            sock.connect((multiaddr, port))?;
             let mut buf = [0u8; 16384];
             let mut stdin = io::stdin();
             loop {
@@ -78,6 +78,27 @@ fn run() -> AppResult<()> {
                     data = &data[..len - 1];
                 }
                 sock.send(data)?;
+            }
+        }
+        Command::Ping => {
+            let sock = match multiaddr {
+                net::IpAddr::V4(_) => net::UdpSocket::bind((net::Ipv4Addr::from(0), 0))?,
+                net::IpAddr::V6(_) => net::UdpSocket::bind((net::Ipv6Addr::from([0u8; 16]), 0))?,
+            };
+            let sock2 = sock.try_clone()?;
+            thread::spawn(move || {
+                let mut buf = [0u8; 16384];
+                loop {
+                    let (len, src) = sock2.recv_from(&mut buf).unwrap();
+                    let data = &buf[..len];
+                    println!("{} from {}", String::from_utf8_lossy(data), src);
+                }
+            });
+            let mut seqnum = 0;
+            loop {
+                seqnum += 1;
+                sock.send_to(format!("PING {}", seqnum).as_bytes(), (multiaddr, port))?;
+                thread::sleep(Duration::from_millis(250));
             }
         }
     }
@@ -95,6 +116,7 @@ fn parse_cmdline() -> AppResult<(Command, net::IpAddr, u16)> {
     let cmd = match &*cmd {
         "listen" => Command::Listen,
         "send" => Command::Send,
+        "ping" => Command::Ping,
         _ => {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid cmd specified").into())
         }
