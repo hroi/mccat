@@ -25,7 +25,7 @@ fn run() -> AppResult<()> {
 
     if !multiaddr.is_multicast() {
         Err(io::Error::new(io::ErrorKind::InvalidInput,
-                           format!("{} is not a multicast address", multiaddr)))?;
+                           format!("{} is not a multicast address", multiaddr)))?
     }
 
     match cmd {
@@ -113,24 +113,24 @@ fn ping(multiaddr: net::IpAddr, port: u16) -> AppResult<()> {
 
 fn parse_cmdline() -> AppResult<(Command, net::IpAddr, u16)> {
     let mut args = env::args().skip(1);
-    let cmd = args.next()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
-    let addr = args.next()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
-    let port = args.next()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
 
-    let cmd = match &*cmd {
-        "listen" => Command::Listen,
-        "send" => Command::Send,
-        "ping" => Command::Ping,
-        _ => {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "invalid cmd specified").into())
-        }
-    };
+    if args.len() == 3 {
+        let cmd = args.next().expect("cmd arg");
+        let addr = args.next().expect("addr arg");
+        let port = args.next().expect("port arg");
 
-    let addr: net::IpAddr = addr.parse()?;
-    let port: u16 = port.parse()?;
+        let cmd = match &*cmd {
+            "listen" => Command::Listen,
+            "send" => Command::Send,
+            "ping" => Command::Ping,
+            _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE))?
+        };
 
-    Ok((cmd, addr, port))
+        let addr: net::IpAddr = addr.parse()?;
+        let port: u16 = port.parse()?;
+
+        Ok((cmd, addr, port))
+    } else {
+        Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into())
+    }
 }
